@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fede en la Ciudad</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background: url('fondo_ciudad.png') repeat-x;
+      background-size: cover;
+    }
+    button {
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="juego"></canvas>
+  <script>
+    const canvas = document.getElementById("juego");
+    const ctx = canvas.getContext("2d");
+
+    function ajustarCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', ajustarCanvas);
+    ajustarCanvas();
+
+    // Imagen del personaje y obstáculo
+    const imgFede = new Image();
+    imgFede.src = 'fede.png';
+    const imgPeligro = new Image();
+    imgPeligro.src = 'peligro.png';
+
+    // Configuración del jugador
+    const fede = {
+      x: canvas.width * 0.1,
+      y: canvas.height * 0.5,
+      width: canvas.width * 0.05,
+      height: canvas.width * 0.05,
+      vy: 0,
+      gravity: canvas.height * 0.002,
+      jumpStrength: canvas.height * 0.035,
+      onGround: false
+    };
+
+    let plataformas = [];
+    let peligros = [];
+    let gameSpeed = canvas.width * 0.005;
+    let score = 0;
+    let animationId;
+
+    // Generar plataformas iniciales
+    for (let i = 0; i < 5; i++) {
+      plataformas.push({
+        x: i * canvas.width * 0.25,
+        y: canvas.height * 0.8 - Math.random() * canvas.height * 0.25,
+        width: canvas.width * 0.25,
+        height: 20
+      });
+    }
+
+    // Input por teclado
+    document.addEventListener('keydown', (e) => {
+      if ((e.code === 'Space' || e.code === 'ArrowUp') && fede.onGround) {
+        fede.vy = -fede.jumpStrength;
+        fede.onGround = false;
+      }
+    });
+
+    // Input por pantalla táctil
+    let touchStartY = 0;
+    canvas.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    });
+    canvas.addEventListener('touchend', (e) => {
+      let touchEndY = e.changedTouches[0].clientY;
+      let deltaY = touchStartY - touchEndY;
+      if (deltaY > 30 || deltaY === 0) {
+        if (fede.onGround) {
+          fede.vy = -fede.jumpStrength;
+          fede.onGround = false;
+        }
+      }
+    });
+
+    function juego() {
+      animationId = requestAnimationFrame(juego);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      fede.vy += fede.gravity;
+      fede.y += fede.vy;
+      fede.onGround = false;
+
+      ctx.drawImage(imgFede, fede.x, fede.y, fede.width, fede.height);
+
+      for (let i = 0; i < plataformas.length; i++) {
+        let plat = plataformas[i];
+        plat.x -= gameSpeed;
+        ctx.fillStyle = "gray";
+        ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+
+        if (
+          fede.x + fede.width > plat.x &&
+          fede.x < plat.x + plat.width &&
+          fede.y + fede.height > plat.y &&
+          fede.y + fede.height < plat.y + plat.height + 10 &&
+          fede.vy >= 0
+        ) {
+          fede.y = plat.y - fede.height;
+          fede.vy = 0;
+          fede.onGround = true;
+        }
+      }
+
+      if (plataformas[0].x + plataformas[0].width < 0) {
+        let nuevaX = plataformas[plataformas.length - 1].x + canvas.width * 0.25;
+        let nuevaY = canvas.height * 0.8 - Math.random() * canvas.height * 0.25;
+        plataformas.push({
+          x: nuevaX,
+          y: nuevaY,
+          width: canvas.width * 0.25,
+          height: 20
+        });
+        plataformas.shift();
+
+        if (Math.random() < 0.4) {
+          peligros.push({
+            x: nuevaX + (canvas.width * 0.125),
+            y: nuevaY - canvas.width * 0.03,
+            width: canvas.width * 0.04,
+            height: canvas.width * 0.04
+          });
+        }
+      }
+
+      for (let i = 0; i < peligros.length; i++) {
+        let p = peligros[i];
+        p.x -= gameSpeed;
+        ctx.drawImage(imgPeligro, p.x, p.y, p.width, p.height);
+
+        if (
+          fede.x < p.x + p.width &&
+          fede.x + fede.width > p.x &&
+          fede.y < p.y + p.height &&
+          fede.y + fede.height > p.y
+        ) {
+          gameOver();
+        }
+      }
+
+      if (fede.y > canvas.height) {
+        gameOver();
+      }
+
+      score++;
+      ctx.fillStyle = "white";
+      ctx.font = Math.floor(canvas.width * 0.03) + "px Arial";
+      ctx.textAlign = 'center';
+      ctx.fillText("Puntos: " + score, canvas.width / 2, canvas.height * 0.08);
+    }
+
+    function gameOver() {
+      cancelAnimationFrame(animationId);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'white';
+      ctx.font = Math.floor(canvas.width * 0.05) + 'px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('¡Fede ha muerto!', canvas.width / 2, canvas.height / 2 - 50);
+      ctx.font = Math.floor(canvas.width * 0.035) + 'px Arial';
+      ctx.fillText('Puntuación: ' + score, canvas.width / 2, canvas.height / 2);
+
+      const btn = document.createElement('button');
+      btn.textContent = 'Reiniciar';
+      btn.style.position = 'absolute';
+      btn.style.left = '50%';
+      btn.style.top = '60%';
+      btn.style.transform = 'translate(-50%, -50%)';
+      btn.style.padding = '10px 20px';
+      btn.style.fontSize = '24px';
+      document.body.appendChild(btn);
+      btn.addEventListener('click', () => {
+        location.reload();
+      });
+    }
+
+    juego();
+  </script>
+</body>
+</html>

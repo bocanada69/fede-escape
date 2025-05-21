@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #87CEEB; /* Cielo azul claro */
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: url('fondo.png') repeat-x;
+  background-size: cover;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+canvas {
+  display: block;
+  background: url('fondo.png') repeat-x;
+  background-size: cover;
+}
